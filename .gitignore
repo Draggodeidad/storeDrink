@@ -42,3 +42,6 @@ next-env.d.ts
 schema.sql
 
 CONFIGURACION_GOOGLE_AUTH.md
+MENU_SISTEMA.md
+SETUP_SUPABASE.md
+seed_products.sql
