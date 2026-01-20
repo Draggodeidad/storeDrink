@@ -6,6 +6,7 @@ import { useRouter, useParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { RiDrinksFill } from 'react-icons/ri';
+import { addToCart } from '@/app/lib/cartHelpers';
 
 interface Product {
   id: string;
@@ -39,6 +40,8 @@ export default function ProductDetail() {
   const [submitting, setSubmitting] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [addingToCart, setAddingToCart] = useState(false);
+  const [cartSuccess, setCartSuccess] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -137,6 +140,22 @@ export default function ProductDetail() {
       hour: '2-digit',
       minute: '2-digit',
     }).format(date);
+  };
+
+  const handleAddToCart = async () => {
+    setAddingToCart(true);
+    setCartSuccess(false);
+    
+    const result = await addToCart(productId);
+    
+    if (result.success) {
+      setCartSuccess(true);
+      setTimeout(() => setCartSuccess(false), 3000);
+    } else {
+      setError(result.error || 'Error al agregar al carrito');
+    }
+    
+    setAddingToCart(false);
   };
 
   if (loading) {
@@ -240,9 +259,29 @@ export default function ProductDetail() {
                 </p>
               </div>
 
-              <button className="w-full bg-orange-600 hover:bg-orange-700 text-white font-montserrat font-medium py-3 px-6 rounded-lg transition-colors duration-200">
-                Agregar al carrito
-              </button>
+              {cartSuccess && (
+                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="font-montserrat text-green-600 text-sm text-center">
+                    ✓ Producto agregado al carrito
+                  </p>
+                </div>
+              )}
+
+              <div className="flex gap-3">
+                <button 
+                  onClick={handleAddToCart}
+                  disabled={addingToCart}
+                  className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-montserrat font-medium py-3 px-6 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {addingToCart ? 'Agregando...' : 'Agregar al carrito'}
+                </button>
+                <Link
+                  href="/cart"
+                  className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-montserrat font-medium py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center"
+                >
+                  🛒
+                </Link>
+              </div>
             </div>
           </div>
         </div>

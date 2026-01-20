@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/app/lib/supabaseClient';
 import ProductCard from '@/app/components/ProductCard';
 import { useRouter } from 'next/navigation';
-import { RiDrinksFill } from "react-icons/ri";
+import Link from 'next/link';
+import { RiDrinksFill, RiShoppingCartLine, RiAdminLine } from "react-icons/ri";
+import { getCartCount } from '@/app/lib/cartHelpers';
 
 interface Product {
   id: string;
@@ -20,6 +22,8 @@ export default function Menu() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
+  const [cartCount, setCartCount] = useState(0);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     // Verificar autenticación
@@ -30,11 +34,28 @@ export default function Menu() {
         return;
       }
       setUser(session.user);
+
+      // Verificar si es admin
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
+
+      if (profile?.role === 'admin') {
+        setIsAdmin(true);
+      }
     };
 
     checkAuth();
     fetchProducts();
+    loadCartCount();
   }, [router]);
+
+  const loadCartCount = async () => {
+    const count = await getCartCount();
+    setCartCount(count);
+  };
 
   const fetchProducts = async () => {
     try {
@@ -78,18 +99,45 @@ export default function Menu() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="font-oswald text-3xl font-bold text-gray-900">
-              <RiDrinksFill className="inline-block mr-2" /> Cafetería
+                <RiDrinksFill className="inline-block mr-2" /> Cafetería
               </h1>
               <p className="font-montserrat text-sm text-gray-600 mt-1">
-                Hola! {user?.user_metadata.name}
+                Hola! {user?.user_metadata?.name || user?.email}
               </p>
             </div>
-            <button
-              onClick={handleSignOut}
-              className="font-montserrat bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
-            >
-              Cerrar Sesión
-            </button>
+            <div className="flex items-center gap-4">
+              {/* Botón de carrito */}
+              <Link
+                href="/cart"
+                className="relative flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white font-montserrat font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+              >
+                <RiShoppingCartLine className="text-xl" />
+                <span>Carrito</span>
+                {cartCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                )}
+              </Link>
+
+              {/* Botón de admin (solo para admins) */}
+              {isAdmin && (
+                <Link
+                  href="/admin/products"
+                  className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-montserrat font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                >
+                  <RiAdminLine className="text-xl" />
+                  Admin
+                </Link>
+              )}
+
+              <button
+                onClick={handleSignOut}
+                className="font-montserrat bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+              >
+                Cerrar Sesión
+              </button>
+            </div>
           </div>
         </div>
       </header>
