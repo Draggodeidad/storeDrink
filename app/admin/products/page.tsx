@@ -390,16 +390,7 @@ export default function AdminProducts() {
                   </label>
                 </div>
 
-                <p className="mt-2 font-montserrat text-sm text-gray-500">
-                  O ingresa una URL de imagen
-                </p>
-                <input
-                  type="url"
-                  value={formData.image_url}
-                  onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                  placeholder="https://ejemplo.com/imagen.jpg"
-                  className="mt-2 w-full font-montserrat px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                />
+              
               </div>
 
               {/* Nombre */}
@@ -435,7 +426,7 @@ export default function AdminProducts() {
               {/* Precio */}
               <div>
                 <label className="block font-montserrat font-medium text-gray-700 mb-2">
-                  Precio * (USD)
+                  Precio * (MXN)
                 </label>
                 <input
                   type="number"

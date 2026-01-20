@@ -7,6 +7,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { RiDrinksFill } from 'react-icons/ri';
 import { addToCart } from '@/app/lib/cartHelpers';
+import { MdAddShoppingCart } from "react-icons/md";
 
 interface Product {
   id: string;
@@ -42,6 +43,7 @@ export default function ProductDetail() {
   const [error, setError] = useState<string | null>(null);
   const [addingToCart, setAddingToCart] = useState(false);
   const [cartSuccess, setCartSuccess] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -56,7 +58,23 @@ export default function ProductDetail() {
     checkAuth();
     fetchProduct();
     fetchComments();
+    fetchCartCount();
   }, [productId, router]);
+
+  const fetchCartCount = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const { data, error } = await supabase
+      .from('cart_items')
+      .select('quantity')
+      .eq('user_id', session.user.id);
+
+    if (!error && data) {
+      const total = data.reduce((sum, item) => sum + item.quantity, 0);
+      setCartCount(total);
+    }
+  };
 
   const fetchProduct = async () => {
     try {
@@ -150,6 +168,7 @@ export default function ProductDetail() {
     
     if (result.success) {
       setCartSuccess(true);
+      fetchCartCount(); // Actualizar el contador del carrito
       setTimeout(() => setCartSuccess(false), 3000);
     } else {
       setError(result.error || 'Error al agregar al carrito');
@@ -277,9 +296,14 @@ export default function ProductDetail() {
                 </button>
                 <Link
                   href="/cart"
-                  className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-montserrat font-medium py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center"
+                  className="relative bg-gray-200 hover:bg-gray-300 text-gray-800 font-montserrat font-medium py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center"
                 >
-                  🛒
+                  <MdAddShoppingCart className="text-2xl" />
+                  {cartCount > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
+                      {cartCount}
+                    </span>
+                  )}
                 </Link>
               </div>
             </div>

@@ -50,3 +50,7 @@ CARRITO_Y_ADMIN_DOCS.md
 RESUMEN_COMPLETO.md
 fix_rls_policies.sql
 setup_admin_cart.sql
+
+CONFIGURAR_ENV.md
+fix_admin_view_users_CORRECTO.sql
+fix_trigger_recreate_profile.sql
