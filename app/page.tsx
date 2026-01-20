@@ -57,31 +57,7 @@ export default function Home() {
     return null;
   }
 
-  return (
-    <div className="min-h-screen bg-[#f8f9fa] py-12 px-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-lg p-8">
-          <h1 className="font-oswald text-4xl font-semibold text-gray-900 mb-4">
-            ¡Bienvenido a Cafetería!
-          </h1>
-          
-          <div className="mb-6">
-            <p className="font-montserrat text-gray-600 mb-2">
-              Has iniciado sesión correctamente.
-            </p>
-            <p className="font-montserrat text-sm text-gray-500">
-              Email: <span className="font-medium text-gray-700">{user.email}</span>
-            </p>
-          </div>
-
-          <button
-            onClick={handleSignOut}
-            className="font-montserrat bg-red-500 hover:bg-red-600 text-white font-medium py-2.5 px-6 rounded-lg transition-colors duration-200"
-          >
-            Cerrar Sesión
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+  // Redirigir automáticamente al menú
+  router.push('/menu');
+  return null;
 }
