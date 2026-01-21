@@ -24,9 +24,7 @@ export default function Home() {
       async (event, session) => {
         setUser(session?.user ?? null);
         
-        if (event === 'SIGNED_IN') {
-          console.log('Usuario autenticado:', session?.user);
-        }
+       
       }
     );
 
