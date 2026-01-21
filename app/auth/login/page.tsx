@@ -38,7 +38,7 @@ export default function Login() {
     <div 
       className="min-h-screen flex items-center justify-center px-4 py-12 relative"
       style={{
-        backgroundImage: 'url(/login.jpg)',
+        backgroundImage: 'url(/bkgroungLogin.webp)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
