@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { logError, toPublicErrorMessage } from './errorHandling';
 
 export interface CartItem {
   id: string;
@@ -39,7 +40,9 @@ export const addToCart = async (productId: string, quantity: number = 1) => {
       const { error: updateError } = await supabase
         .from('cart_items')
         .update({ quantity: existingItem.quantity + quantity })
-        .eq('id', existingItem.id);
+        // Defensa en profundidad: evitar IDOR incluso si alguien logra obtener un UUID ajeno
+        .eq('id', existingItem.id)
+        .eq('user_id', userId);
 
       if (updateError) throw updateError;
     } else {
@@ -57,8 +60,8 @@ export const addToCart = async (productId: string, quantity: number = 1) => {
 
     return { success: true };
   } catch (error: any) {
-    console.error('Error al agregar al carrito:', error);
-    return { success: false, error: error.message };
+    logError('cart:addToCart', error);
+    return { success: false, error: toPublicErrorMessage(error) };
   }
 };
 
@@ -88,7 +91,7 @@ export const getCartItems = async (): Promise<CartItem[]> => {
     if (error) throw error;
     return (data as any) || [];
   } catch (error) {
-    console.error('Error al obtener items del carrito:', error);
+    logError('cart:getCartItems', error);
     return [];
   }
 };
@@ -99,31 +102,41 @@ export const updateCartItemQuantity = async (cartItemId: string, quantity: numbe
       return removeFromCart(cartItemId);
     }
 
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error('No autenticado');
+
     const { error } = await supabase
       .from('cart_items')
       .update({ quantity })
-      .eq('id', cartItemId);
+      // Defensa en profundidad contra IDOR
+      .eq('id', cartItemId)
+      .eq('user_id', session.user.id);
 
     if (error) throw error;
     return { success: true };
   } catch (error: any) {
-    console.error('Error al actualizar cantidad:', error);
-    return { success: false, error: error.message };
+    logError('cart:updateCartItemQuantity', error);
+    return { success: false, error: toPublicErrorMessage(error) };
   }
 };
 
 export const removeFromCart = async (cartItemId: string) => {
   try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error('No autenticado');
+
     const { error } = await supabase
       .from('cart_items')
       .delete()
-      .eq('id', cartItemId);
+      // Defensa en profundidad contra IDOR
+      .eq('id', cartItemId)
+      .eq('user_id', session.user.id);
 
     if (error) throw error;
     return { success: true };
   } catch (error: any) {
-    console.error('Error al eliminar del carrito:', error);
-    return { success: false, error: error.message };
+    logError('cart:removeFromCart', error);
+    return { success: false, error: toPublicErrorMessage(error) };
   }
 };
 
@@ -140,8 +153,8 @@ export const clearCart = async () => {
     if (error) throw error;
     return { success: true };
   } catch (error: any) {
-    console.error('Error al limpiar carrito:', error);
-    return { success: false, error: error.message };
+    logError('cart:clearCart', error);
+    return { success: false, error: toPublicErrorMessage(error) };
   }
 };
 
@@ -160,7 +173,7 @@ export const getCartCount = async (): Promise<number> => {
     const total = data?.reduce((sum, item) => sum + item.quantity, 0) || 0;
     return total;
   } catch (error) {
-    console.error('Error al obtener conteo del carrito:', error);
+    logError('cart:getCartCount', error);
     return 0;
   }
 };

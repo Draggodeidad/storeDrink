@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { RiDrinksFill, RiAddLine, RiEdit2Line, RiDeleteBin6Line, RiImageAddLine } from 'react-icons/ri';
+import { logError, toPublicErrorMessage } from '@/app/lib/errorHandling';
 
 interface Product {
   id: string;
@@ -34,6 +35,16 @@ export default function AdminProducts() {
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5MB
+  const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+  const EXT_BY_MIME: Record<string, string> = {
+    'image/jpeg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+    'image/gif': 'gif',
+  };
 
   useEffect(() => {
     checkAdminAccess();
@@ -70,7 +81,7 @@ export default function AdminProducts() {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error al cargar productos:', error);
+      logError('admin:products:fetchProducts', error);
       return;
     }
 
@@ -80,6 +91,22 @@ export default function AdminProducts() {
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setFormError(null);
+
+      if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
+        setImageFile(null);
+        setImagePreview('');
+        alert('Tipo de imagen no permitido. Usa JPG/PNG/WEBP/GIF.');
+        return;
+      }
+
+      if (file.size > MAX_IMAGE_BYTES) {
+        setImageFile(null);
+        setImagePreview('');
+        alert('La imagen es demasiado grande. Máximo 5MB.');
+        return;
+      }
+
       setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -92,13 +119,29 @@ export default function AdminProducts() {
   const uploadImage = async (file: File): Promise<string | null> => {
     try {
       setUploading(true);
-      const fileExt = file.name.split('.').pop();
+      if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
+        throw new Error('Tipo de archivo no permitido');
+      }
+      if (file.size > MAX_IMAGE_BYTES) {
+        throw new Error('Archivo demasiado grande');
+      }
+
+      const nameExt = file.name.includes('.') ? file.name.split('.').pop()?.toLowerCase() : undefined;
+      const mimeExt = EXT_BY_MIME[file.type];
+      const fileExt = nameExt || mimeExt;
+      if (!fileExt) {
+        throw new Error('No se pudo determinar la extensión del archivo');
+      }
+
       const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('product-images')
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          contentType: file.type,
+          upsert: false,
+        });
 
       if (uploadError) throw uploadError;
 
@@ -108,8 +151,8 @@ export default function AdminProducts() {
 
       return publicUrl;
     } catch (error) {
-      console.error('Error al subir imagen:', error);
-      alert('Error al subir la imagen');
+      logError('admin:products:uploadImage', error, { fileType: file?.type, fileSize: file?.size });
+      alert(toPublicErrorMessage(error, 'Error al subir la imagen. Verifica el archivo e intenta de nuevo.'));
       return null;
     } finally {
       setUploading(false);
@@ -118,6 +161,29 @@ export default function AdminProducts() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
+
+    const name = formData.name.trim();
+    const description = formData.description.trim();
+    const priceRaw = formData.price?.toString().trim();
+    const price = Number(priceRaw);
+
+    if (!name) {
+      setFormError('El nombre es obligatorio.');
+      return;
+    }
+    if (!description) {
+      setFormError('La descripción es obligatoria.');
+      return;
+    }
+    if (!priceRaw || Number.isNaN(price) || !Number.isFinite(price)) {
+      setFormError('El precio no es válido.');
+      return;
+    }
+    if (price < 0) {
+      setFormError('El precio no puede ser negativo.');
+      return;
+    }
 
     let imageUrl = formData.image_url;
 
@@ -132,9 +198,9 @@ export default function AdminProducts() {
     }
 
     const productData = {
-      name: formData.name,
-      description: formData.description,
-      price: parseFloat(formData.price),
+      name,
+      description,
+      price,
       image_url: imageUrl,
     };
 
@@ -146,8 +212,8 @@ export default function AdminProducts() {
         .eq('id', editingProduct.id);
 
       if (error) {
-        console.error('Error al actualizar producto:', error);
-        alert('Error al actualizar el producto');
+        logError('admin:products:update', error);
+        alert(toPublicErrorMessage(error, 'Error al actualizar el producto'));
         return;
       }
     } else {
@@ -157,8 +223,8 @@ export default function AdminProducts() {
         .insert(productData);
 
       if (error) {
-        console.error('Error al crear producto:', error);
-        alert('Error al crear el producto');
+        logError('admin:products:create', error);
+        alert(toPublicErrorMessage(error, 'Error al crear el producto'));
         return;
       }
     }
@@ -195,8 +261,8 @@ export default function AdminProducts() {
       .eq('id', id);
 
     if (error) {
-      console.error('Error al eliminar producto:', error);
-      alert('Error al eliminar el producto');
+      logError('admin:products:delete', error);
+      alert(toPublicErrorMessage(error, 'Error al eliminar el producto'));
       return;
     }
 
@@ -354,6 +420,11 @@ export default function AdminProducts() {
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
+              {formError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="font-montserrat text-red-600 text-sm">{formError}</p>
+                </div>
+              )}
               {/* Imagen */}
               <div>
                 <label className="block font-montserrat font-medium text-gray-700 mb-2">

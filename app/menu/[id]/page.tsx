@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { RiDrinksFill } from 'react-icons/ri';
 import { addToCart } from '@/app/lib/cartHelpers';
 import { MdAddShoppingCart } from "react-icons/md";
+import { logError, toPublicErrorMessage } from '@/app/lib/errorHandling';
 
 interface Product {
   id: string;
@@ -87,8 +88,8 @@ export default function ProductDetail() {
       if (error) throw error;
       setProduct(data);
     } catch (err: any) {
-      console.error('Error al cargar producto:', err);
-      setError(err.message);
+      logError('productDetail:fetchProduct', err, { productId });
+      setError(toPublicErrorMessage(err, 'No se pudo cargar el producto. Intenta nuevamente.'));
     } finally {
       setLoading(false);
     }
@@ -114,7 +115,7 @@ export default function ProductDetail() {
       if (error) throw error;
       setComments((data as any) || []);
     } catch (err: any) {
-      console.error('Error al cargar comentarios:', err);
+      logError('productDetail:fetchComments', err, { productId });
     }
   };
 
@@ -142,8 +143,8 @@ export default function ProductDetail() {
       setNewComment('');
       await fetchComments();
     } catch (err: any) {
-      console.error('Error al enviar comentario:', err);
-      setError(err.message);
+      logError('productDetail:submitComment', err, { productId });
+      setError(toPublicErrorMessage(err, 'No se pudo publicar el comentario. Intenta nuevamente.'));
     } finally {
       setSubmitting(false);
     }
