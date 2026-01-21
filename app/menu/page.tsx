@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { RiDrinksFill, RiShoppingCartLine, RiAdminLine } from "react-icons/ri";
 import { getCartCount } from '@/app/lib/cartHelpers';
+import { logError, toPublicErrorMessage } from '@/app/lib/errorHandling';
 
 interface Product {
   id: string;
@@ -68,8 +69,8 @@ export default function Menu() {
 
       setProducts(data || []);
     } catch (err: any) {
-      console.error('Error al cargar productos:', err);
-      setError(err.message);
+      logError('menu:fetchProducts', err);
+      setError(toPublicErrorMessage(err, 'No se pudieron cargar los productos. Intenta nuevamente.'));
     } finally {
       setLoading(false);
     }

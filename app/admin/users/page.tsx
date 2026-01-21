@@ -5,6 +5,7 @@ import { supabase } from '@/app/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { RiDrinksFill, RiUserAddLine, RiDeleteBin6Line, RiAdminLine, RiUserLine } from 'react-icons/ri';
+import { logError, toPublicErrorMessage } from '@/app/lib/errorHandling';
 
 interface Profile {
   id: string;
@@ -58,7 +59,7 @@ export default function AdminUsers() {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error al cargar usuarios:', error);
+      logError('admin:users:fetchUsers', error);
       setLoading(false);
       return;
     }
@@ -85,8 +86,8 @@ export default function AdminUsers() {
       .eq('id', userId);
 
     if (error) {
-      console.error('Error al cambiar rol:', error);
-      alert('Error al cambiar el rol del usuario');
+      logError('admin:users:toggleRole', error, { userId, newRole });
+      alert(toPublicErrorMessage(error, 'Error al cambiar el rol del usuario'));
       return;
     }
 
@@ -131,8 +132,8 @@ export default function AdminUsers() {
       alert('Usuario eliminado completamente de la base de datos y autenticación.');
       fetchUsers();
     } catch (error) {
-      console.error('Error al eliminar usuario:', error);
-      alert(`Error al eliminar el usuario: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+      logError('admin:users:deleteUser', error, { userId });
+      alert(toPublicErrorMessage(error, 'Error al eliminar el usuario'));
     }
   };
 

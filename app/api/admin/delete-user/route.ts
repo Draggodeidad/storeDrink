@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { logError } from '@/app/lib/errorHandling';
 
 // Cliente de Supabase con privilegios de admin (service role)
 const supabaseAdmin = createClient(
@@ -62,7 +63,7 @@ export async function DELETE(request: NextRequest) {
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
     if (deleteError) {
-      console.error('Error al eliminar usuario:', deleteError);
+      logError('api:admin:delete-user:deleteUser', deleteError, { userId });
       return NextResponse.json(
         { error: 'Error al eliminar el usuario' },
         { status: 500 }
@@ -80,7 +81,7 @@ export async function DELETE(request: NextRequest) {
       { status: 200 }
     );
   } catch (error) {
-    console.error('Error en la API:', error);
+    logError('api:admin:delete-user:unexpected', error);
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

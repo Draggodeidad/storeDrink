@@ -3,6 +3,7 @@
 import { supabase } from '@/app/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { logError, toPublicErrorMessage } from '@/app/lib/errorHandling';
 
 export default function Login() {
   const router = useRouter();
@@ -22,12 +23,12 @@ export default function Login() {
       });
 
       if (error) {
-        setError(error.message);
-        console.error('Error de autenticación:', error);
+        logError('auth:login:oauth', error);
+        setError(toPublicErrorMessage(error, 'No se pudo iniciar sesión. Intenta nuevamente.'));
       }
     } catch (err) {
       setError('Ocurrió un error inesperado. Por favor, intenta de nuevo.');
-      console.error('Error:', err);
+      logError('auth:login:unexpected', err);
     } finally {
       setLoading(false);
     }
