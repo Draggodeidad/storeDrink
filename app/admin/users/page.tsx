@@ -99,24 +99,41 @@ export default function AdminUsers() {
       return;
     }
 
-    if (!confirm('¿Estás seguro de que quieres eliminar este usuario? Esta acción no se puede deshacer.')) {
+    if (!confirm('¿Estás seguro de que quieres eliminar este usuario? Esta acción eliminará completamente su cuenta y no se puede deshacer.')) {
       return;
     }
 
-    // Nota: Eliminar un usuario de auth.users requiere privilegios de servicio
-    // Por ahora solo eliminamos el perfil
-    const { error } = await supabase
-      .from('profiles')
-      .delete()
-      .eq('id', userId);
+    try {
+      // Obtener el token de sesión actual
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        alert('Sesión expirada. Por favor, inicia sesión nuevamente.');
+        return;
+      }
 
-    if (error) {
+      // Llamar a la API para eliminar el usuario completamente
+      const response = await fetch('/api/admin/delete-user', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ userId }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al eliminar usuario');
+      }
+
+      alert('Usuario eliminado completamente de la base de datos y autenticación.');
+      fetchUsers();
+    } catch (error) {
       console.error('Error al eliminar usuario:', error);
-      alert('Error al eliminar el usuario. Nota: Esto solo elimina el perfil, no la cuenta de autenticación.');
-      return;
+      alert(`Error al eliminar el usuario: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     }
-
-    fetchUsers();
   };
 
   const formatDate = (dateString: string) => {
